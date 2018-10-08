@@ -2,7 +2,9 @@ __precompile__()
 module AmplNLWriter
 
 using MathProgBase
-importall MathProgBase.SolverInterface
+using MathProgBase.SolverInterface
+
+using SparseArrays
 
 debug = false
 setdebug(b::Bool) = global debug = b
@@ -337,7 +339,7 @@ function loadcommon!(m::AmplNLMathProgModel, x_l, x_u, g_l, g_u, sense)
     m.lin_constrs = [Dict{Int, Float64}() for _ in 1:m.ncon]
     m.j_counts = zeros(Int, m.nvar)
 
-    m.r_codes = Array{Int}(m.ncon)
+    m.r_codes = Array{Int}(undef,m.ncon)
 
     m.varlinearities_con = fill(:Lin, m.nvar)
     m.varlinearities_obj = fill(:Lin, m.nvar)
@@ -582,7 +584,7 @@ function read_results(resultio, m::AmplNLMathProgModel)
         # Used to indicate solution present but likely incorrect.
         m.status = :Optimal
         m.solve_result = "solved?"
-        warn("The solver has returned the status :Optimal, but indicated that there might be an error in the solution. The status code returned by the solver was $(m.solve_result_num). Check the solver documentation for more info.")
+        @warn("The solver has returned the status :Optimal, but indicated that there might be an error in the solution. The status code returned by the solver was $(m.solve_result_num). Check the solver documentation for more info.")
     elseif 200 <= m.solve_result_num < 300
         m.status = :Infeasible
         m.solve_result = "infeasible"
@@ -622,6 +624,7 @@ function read_results(resultio, m::AmplNLMathProgModel)
             try
                 m.objval = eval_f(m.d, m.solution)
                 return
+            catch
             end
         end
 
